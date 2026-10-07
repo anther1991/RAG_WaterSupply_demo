@@ -1,0 +1,21 @@
+## Build
+bin/
+obj/
+TestResults/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+## Bí mật / cấu hình cục bộ
+.env
+appsettings.*.local.json
+appsettings.Production.json
+
+## Log và file tạm
+*.log
+*.bak
+*.tmp

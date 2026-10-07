@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "RAG_WaterSupply": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:56722;http://localhost:56723"
+    }
+  }
+}

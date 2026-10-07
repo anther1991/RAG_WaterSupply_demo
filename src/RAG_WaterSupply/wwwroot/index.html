@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaterSupply AI | Trợ lý dữ liệu cấp nước (demo)</title>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css?v=0.17.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(22, 27, 34, 0.7);
+            --accent-color: #58a6ff;
+            --text-color: #c9d1d9;
+            --text-dim: #8b949e;
+            --header-bg: rgba(13, 17, 23, 0.8);
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, #1a2333, #0d1117);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Layout */
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100vh;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            /* Cố định khung bên ngoài */
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #58a6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent-color);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        /* Chat History */
+        #chat-history {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            /* Quan trọng: Cho phép container co lại để kích hoạt scroll */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 1rem 1.5rem;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+            min-width: 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--accent-color);
+            color: #000;
+            font-weight: 500;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Typing Indicator */
+        .typing {
+            font-style: italic;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        /* Input Area */
+        .input-sidebar {
+            padding: 2rem;
+            border-top: 1px solid var(--border-color);
+            background: rgba(13, 17, 23, 0.9);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            background: var(--bg-color);
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.3s;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--accent-color);
+        }
+
+        input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            margin-top: 5rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state p {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* SQL Table Styling */
+        .table-wrapper {
+            margin-top: 1rem;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            white-space: normal;
+        }
+
+        .sql-details {
+            display: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin: 0.75rem 0;
+            overflow: hidden;
+        }
+
+        body.show-sql-enabled .sql-details {
+            display: block;
+        }
+
+        .sql-details[open] {
+            border-color: var(--accent-color);
+        }
+
+        .sql-details summary {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--accent-color);
+            outline: none;
+            user-select: none;
+            background: rgba(88, 166, 255, 0.05);
+            transition: background 0.2s;
+        }
+
+        .sql-details summary:hover {
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        .sql-details pre {
+            margin: 0;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            overflow-x: auto;
+            background: rgba(0, 0, 0, 0.3);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #e1e4e8;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        th {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent-color);
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap; /* Ngăn tiêu đề cột bị ngắt dòng */
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+            color: var(--text-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .message p:first-child {
+            margin-top: 0;
+        }
+
+        .message p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message ul,
+        .message ol {
+            padding-left: 24px;
+        }
+
+        .message blockquote {
+            margin-left: 0;
+            padding-left: 14px;
+            border-left: 3px solid var(--accent-color);
+            opacity: 0.9;
+        }
+
+        .message .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 6px 0;
+        }
+
+        .table-export-container {
+            margin: 14px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.1);
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .table-export-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin: 8px 8px 0 0;
+            position: relative;
+        }
+
+        .table-scroll-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+
+        .table-export-menu {
+            position: relative;
+        }
+
+        .table-export-trigger {
+            width: 36px;
+            height: 30px;
+            padding: 0 0 5px;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-color);
+            font-size: 17px;
+            line-height: 1;
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        .table-export-trigger:hover,
+        .table-export-trigger:focus-visible,
+        .table-export-menu.is-open .table-export-trigger {
+            border-color: var(--accent-color);
+            background: rgba(90, 169, 255, 0.1);
+            outline: none;
+        }
+
+        .table-export-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 20;
+            min-width: 158px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            background: #151c24;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .table-export-menu.is-open .table-export-panel {
+            display: grid;
+            gap: 2px;
+        }
+
+        .table-export-item {
+            width: 100%;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 13px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .table-export-item:hover,
+        .table-export-item:focus-visible {
+            background: rgba(90, 169, 255, 0.12);
+            color: var(--accent-color);
+            outline: none;
+        }
+
+        .table-export-item:disabled {
+            opacity: 0.55;
+            cursor: wait;
+        }
+
+        .table-export-item svg {
+            width: 17px;
+            height: 17px;
+            flex: 0 0 17px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Mermaid Diagram Styling */
+        .mermaid-container {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+        }
+        .mermaid {
+            background: transparent !important;
+        }
+        #clear-image-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: #0d1117;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+            z-index: 10;
+            padding: 0 !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
+        #image-preview-container:hover #clear-image-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #clear-image-btn:hover {
+            background: #f0f0f0 !important;
+            transform: scale(1.1);
+        }
+        #upload-btn:hover {
+            color: var(--accent-color) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>WATERSUPPLY AI</h1>
+            <div class="status-badge">● Gemma 4 Connected</div>
+        </header>
+
+        <div id="chat-history">
+        </div>
+
+        <div class="input-sidebar">
+            <div id="image-preview-container" style="display: none; position: relative; margin-bottom: 12px; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); width: fit-content; background: rgba(0, 0, 0, 0.25);">
+                <img id="image-preview" src="" alt="Preview" style="max-height: 75px; display: block; border-radius: 6px; object-fit: contain;">
+                <button type="button" id="clear-image-btn" title="Xóa ảnh">×</button>
+            </div>
+            <form id="ask-form">
+                <div class="input-group">
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                    <label for="image-upload" id="upload-btn" title="Đính kèm hình ảnh" style="display: flex; align-items: center; justify-content: center; padding: 0 0.5rem 0 1rem; color: var(--text-dim); cursor: pointer; transition: color 0.2s;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                    </label>
+                    <input type="text" id="user-input" placeholder="Nhập câu hỏi của bạn tại đây..." autocomplete="off">
+                    <button type="submit" id="send-btn">Gửi</button>
+                </div>
+                <div class="options-bar" style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: var(--text-dim); padding-left: 10px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="show-sql-toggle" style="cursor: pointer; accent-color: var(--accent-color); width: 14px; height: 14px; margin: 0;">
+                        <span>Hiển thị câu lệnh SQL đã chạy</span>
+                    </label>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatHistoryContainer = document.getElementById('chat-history');
+        const askForm = document.getElementById('ask-form');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        let historyData = [];
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatResponseText(text) {
+            const regex = /```sql([\s\S]*?)(?:```|$)/gi;
+            let parts = [];
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = regex.exec(text)) !== null) {
+                const before = text.substring(lastIndex, match.index);
+                if (before) {
+                    parts.push(escapeHtml(before).replace(/\n/g, '<br>'));
+                }
+                
+                const sqlCode = match[1].trim();
+                const detailsHtml = `<details class="sql-details"><summary>🔍 Xem câu lệnh SQL</summary><pre><code>${escapeHtml(sqlCode)}</code></pre></details>`;
+                parts.push(detailsHtml);
+                
+                lastIndex = regex.lastIndex;
+                if (!match[0].endsWith('```')) {
+                    break;
+                }
+            }
+            
+            if (lastIndex < text.length) {
+                const after = text.substring(lastIndex);
+                parts.push(escapeHtml(after).replace(/\n/g, '<br>'));
+            }
+            
+            if (parts.length > 0) {
+                return parts.join('');
+            }
+            
+            return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+
+        function appendMessage(role, text, imgBase64 = null) {
+            const emptyState = document.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}-message`;
+
+            if (imgBase64) {
+                const img = document.createElement('img');
+                img.src = `data:image/jpeg;base64,${imgBase64}`;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '200px';
+                img.style.borderRadius = '8px';
+                img.style.marginBottom = '8px';
+                img.style.display = 'block';
+                msgDiv.appendChild(img);
+            }
+
+            if (text) {
+                const textSpan = document.createElement('span');
+                textSpan.innerText = text;
+                msgDiv.appendChild(textSpan);
+            }
+
+            chatHistoryContainer.appendChild(msgDiv);
+
+            // Cuộn xuống mượt mà
+            chatHistoryContainer.scrollTo({
+                top: chatHistoryContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+            return msgDiv;
+        }
+
+        function renderSqlTable(jsonStr) {
+            try {
+                const data = JSON.parse(jsonStr);
+                if (!Array.isArray(data) || data.length === 0) return `<pre>${jsonStr}</pre>`;
+
+                let html = '<div class="table-wrapper"><table><thead><tr>';
+                const headers = Object.keys(data[0]);
+                headers.forEach(h => html += `<th>${h}</th>`);
+                html += '</tr></thead><tbody>';
+
+                data.forEach(row => {
+                    html += '<tr>';
+                    headers.forEach(h => html += `<td>${row[h]}</td>`);
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table></div>';
+                return html;
+            } catch (e) {
+                return `<pre>${jsonStr}</pre>`;
+            }
+        }
+
+        async function askQuestion() {
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            appendMessage('user', question);
+            userInput.value = '';
+
+            const aiMsg = appendMessage('ai', '');
+            aiMsg.innerHTML = '<span class="typing">Đang suy nghĩ...</span>';
+
+            let fullResponse = "";
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        question: question, 
+                        history: historyData 
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server error");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                aiMsg.innerText = ""; // Clear loader
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const rawData = line.slice(6);
+                            try {
+                                const data = JSON.parse(rawData);
+                                fullResponse += data;
+
+                                 // Logic tách phần giải thích, bảng SQL và phần phân tích
+                                 let textPart = "";
+                                 let jsonPart = "";
+                                 let analysisPart = "";
+
+                                 if (fullResponse.includes('[PHÂN TÍCH]:')) {
+                                     const mainParts = fullResponse.split('[PHÂN TÍCH]:');
+                                     analysisPart = mainParts[1];
+                                     
+                                     const sqlParts = mainParts[0].split('[DỮ LIỆU TRẢ VỀ]:');
+                                     textPart = sqlParts[0];
+                                     jsonPart = sqlParts[1] ? sqlParts[1].trim() : "";
+                                 } else if (fullResponse.includes('[DỮ LIỆU TRẢ VỀ]:')) {
+                                     const sqlParts = fullResponse.split('[DỮ LIỆU TRẢ VỀ]:');
+                                     textPart = sqlParts[0];
+                                     jsonPart = sqlParts[1] ? sqlParts[1].trim() : "";
+                                 } else {
+                                     textPart = fullResponse;
+                                 }
+
+                                 let htmlOutput = "";
+                                 const trimmedTextPart = textPart.trim();
+                                 if (trimmedTextPart) {
+                                     htmlOutput += formatResponseText(trimmedTextPart);
+                                 }
+                                 
+                                 if (jsonPart) {
+                                     htmlOutput += '<div style="display: none;">' +
+                                         '<br><strong>[DỮ LIỆU TRẢ VỀ]:</strong>' +
+                                         renderSqlTable(jsonPart) +
+                                         '</div>';
+                                 }
+                                 
+                                 const trimmedAnalysisPart = analysisPart.trim();
+                                 if (trimmedAnalysisPart) {
+                                     const hasVisibleText = trimmedTextPart.replace(/```sql[\s\S]*?```/gi, '').trim().length > 0;
+                                     if (hasVisibleText && htmlOutput) {
+                                         htmlOutput += '<br><br>';
+                                     }
+                                     htmlOutput += escapeHtml(trimmedAnalysisPart).replace(/\n/g, '<br>');
+                                 }
+                                 aiMsg.innerHTML = htmlOutput;
+
+                                chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
+                            } catch (e) { }
+                        }
+                    }
+                }
+
+                // Sau khi AI trả lời xong, lưu vào lịch sử
+                historyData.push({ role: 'user', content: question });
+                historyData.push({ role: 'assistant', content: fullResponse });
+
+            } catch (error) {
+                aiMsg.innerHTML = `<span style="color: #ff6b6b">❌ Lỗi: ${error.message}</span>`;
+            }
+        }
+
+        askForm.onsubmit = (e) => {
+            e.preventDefault();
+            askQuestion();
+        };
+    </script>
+    <script src="/vendor/katex/katex.min.js?v=0.17.0"></script>
+    <script src="/vendor/marked/marked.umd.js?v=18.0.5"></script>
+    <script src="/vendor/marked-katex-extension/index.umd.js?v=5.1.10"></script>
+    <script src="/vendor/dompurify/purify.min.js?v=3.4.11"></script>
+    <script src="/vendor/exceljs/exceljs.min.js?v=4.4.0"></script>
+    <script src="/vendor/mermaid/mermaid.min.js?v=10.9.1"></script>
+    <script src="/app-v2.js?v=20260624-context-router1"></script>
+</body>
+
+</html>
